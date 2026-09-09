@@ -18,6 +18,7 @@ export type Phase =
   | 'home'
   | 'setup'
   | 'reveal'
+  | 'docs'
   | 'playing'
   | 'good_win'
   | 'evil_win';

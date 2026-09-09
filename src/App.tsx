@@ -47,6 +47,7 @@ export default function App() {
   const [pendingMissionCards, setPendingMissionCards] = useState<
     Record<string, 'success' | 'fail'>
   >({});
+  const [voteTurn, setVoteTurn] = useState(0);
 
   const namesFromDraft = useMemo(
     () =>
@@ -67,6 +68,7 @@ export default function App() {
     setRoleHidden(true);
     setMissionTurnIdx(0);
     setPendingMissionCards({});
+    setVoteTurn(0);
     setSetupDraft('');
   }
 
@@ -91,6 +93,7 @@ export default function App() {
     setPhase('playing');
     setMissionTurnIdx(0);
     setPendingMissionCards({});
+    setVoteTurn(0);
   }
 
   function countSuccesses(sessionNow: GameSession) {
@@ -113,18 +116,6 @@ export default function App() {
       ...sess,
       phaseDetail: { ...sess.phaseDetail, proposal },
     };
-  }
-
-  function togglePick(sess: GameSession, playerId: string): GameSession {
-    const qs =
-      QUEST_TEAM_SIZES[playerCount]?.[sess.missionRound] ??
-      QUEST_TEAM_SIZES[5]![0];
-    return updateProposal(sess, (prop) => {
-      const next = new Set(prop.picks);
-      if (next.has(playerId)) next.delete(playerId);
-      else if (next.size < qs) next.add(playerId);
-      return { ...prop, picks: next };
-    });
   }
 
   function confirmProposal(sess: GameSession): GameSession {
@@ -237,11 +228,22 @@ export default function App() {
   return (
     <div className="wrapper">
       <header style={{ marginBottom: '1.25rem' }}>
-        <h1 style={{ margin: '0 0 0.35rem', fontSize: '1.65rem' }}>Avalon</h1>
-        <p className="muted" style={{ margin: 0 }}>
-          Déduction sociale autour de la Table ronde — interface locale (une seule tablette /
-          téléphone, passez l’écran entre joueurs).
-        </p>
+        <div className="header-row">
+          <div>
+            <h1 style={{ margin: '0 0 0.35rem', fontSize: '1.65rem' }}>Avalon</h1>
+            <p className="muted" style={{ margin: 0 }}>
+              Déduction sociale autour de la Table ronde — interface locale, un seul téléphone.
+            </p>
+          </div>
+          <button type="button" className="btn" onClick={() => setPhase('docs')}>
+            Guide
+          </button>
+          {phase !== 'home' && phase !== 'docs' && (
+            <button type="button" className="btn" onClick={resetAll}>
+              Nouvelle partie
+            </button>
+          )}
+        </div>
       </header>
 
       {phase === 'home' && (
@@ -273,9 +275,14 @@ export default function App() {
             <button type="button" className="btn primary" onClick={startSetup}>
               Nouvelle partie
             </button>
+            <button type="button" className="btn" onClick={() => setPhase('docs')}>
+              Voir le guide
+            </button>
           </div>
         </section>
       )}
+
+      {phase === 'docs' && <RulesGuide onBack={() => setPhase('home')} />}
 
       {phase === 'setup' && (
         <section className="panel">
@@ -388,21 +395,35 @@ export default function App() {
                 </strong>{' '}
                 joueur(s) pour la mission {session.missionRound + 1}.
               </p>
-              <div className="pick-grid">
+              <select
+                className="person-selector"
+                multiple
+                value={[...session.phaseDetail.proposal.picks]}
+                onChange={(event) => {
+                  const selected = Array.from(
+                    event.target.selectedOptions,
+                    (option) => option.value,
+                  );
+                  const limit = QUEST_TEAM_SIZES[playerCount]![session.missionRound];
+                  setSession((currentSession) =>
+                    currentSession
+                      ? updateProposal(currentSession, (proposal) => ({
+                          ...proposal,
+                          picks: new Set(selected.slice(0, limit)),
+                        }))
+                      : currentSession,
+                  );
+                }}
+              >
                 {session.players.map((p) => (
-                  <label key={p.id}>
-                    <input
-                      type="checkbox"
-                      checked={
-                        session.phaseDetail.kind === 'propose' &&
-                        session.phaseDetail.proposal.picks.has(p.id)
-                      }
-                      onChange={() => setSession((s) => (s ? togglePick(s, p.id) : s))}
-                    />
+                  <option key={p.id} value={p.id}>
                     {p.name}
-                  </label>
+                  </option>
                 ))}
-              </div>
+              </select>
+              <p className="muted">
+                Sélectionnés : {session.phaseDetail.proposal.picks.size}
+              </p>
               <div className="row" style={{ marginTop: '1rem' }}>
                 <button
                   type="button"
@@ -424,7 +445,10 @@ export default function App() {
           {session.phaseDetail.kind === 'vote' && (
             <VotePanel
               session={session}
+              voteTurn={voteTurn}
+              setVoteTurn={setVoteTurn}
               onResolve={(votes) => {
+                setVoteTurn(0);
                 setSession((s) => {
                   if (!s) return s;
                   const t = tallyVote(s, votes);
@@ -502,6 +526,58 @@ export default function App() {
   );
 }
 
+function RulesGuide({ onBack }: { onBack: () => void }) {
+  const roles = [
+    ['merlin', 'Bien', 'Connaît les joueurs maléfiques, sauf Mordred. Il doit rester caché jusqu’à la fin.'],
+    ['percival', 'Bien', 'Voit Merlin et Morgane comme deux personnes possibles.'],
+    ['loyal_servant', 'Bien', 'N’a aucun pouvoir spécial et ne peut jouer que Succès en mission.'],
+    ['morgana', 'Mal', 'Apparaît comme Merlin aux yeux de Perceval.'],
+    ['assassin', 'Mal', 'Après trois missions réussies par le Bien, tente d’identifier Merlin.'],
+    ['minion', 'Mal', 'Connaît les autres méchants, sauf Oberon, et peut jouer Échec.'],
+    ['mordred', 'Mal', 'Est invisible pour Merlin, mais connu des autres méchants.'],
+    ['oberon', 'Mal', 'Ne connaît pas les autres méchants et n’est pas connu d’eux.'],
+  ] as const;
+
+  return (
+    <section className="panel guide">
+      <div className="guide-heading">
+        <div>
+          <p className="eyebrow">Manuel de la Table ronde</p>
+          <h2>Règles et pouvoirs</h2>
+        </div>
+        <button type="button" className="btn" onClick={onBack}>Retour</button>
+      </div>
+      <div className="guide-section">
+        <h3>But de la partie</h3>
+        <p>Le Bien gagne en réussissant trois missions, sauf si l’Assassin trouve Merlin. Le Mal gagne avec trois missions échouées ou cinq équipes refusées d’affilée.</p>
+      </div>
+      <div className="guide-section">
+        <h3>Déroulement d’une mission</h3>
+        <ol className="muted">
+          <li>Le chef choisit exactement le nombre de joueurs demandé.</li>
+          <li>Chaque joueur vote secrètement pour accepter ou refuser l’équipe.</li>
+          <li>Si l’équipe est acceptée, ses membres jouent une carte en secret.</li>
+          <li>Une carte Échec suffit normalement à faire échouer la mission. À 7 joueurs ou plus, la quatrième mission demande deux Échecs.</li>
+        </ol>
+      </div>
+      <div className="guide-section">
+        <h3>Personnages</h3>
+        <div className="role-list">
+          {roles.map(([role, camp, power]) => (
+            <article className="role-entry" key={role}>
+              <div className="role-entry-heading">
+                <strong>{ROLE_LABELS_FR[role]}</strong>
+                <span className={`tag ${camp === 'Bien' ? 'good' : 'evil'}`}>{camp}</span>
+              </div>
+              <p className="muted">{power}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function BoardStrip({
   session,
   playerCount,
@@ -549,57 +625,71 @@ function BoardStrip({
 
 function VotePanel({
   session,
+  voteTurn,
+  setVoteTurn,
   onResolve,
 }: {
   session: GameSession;
+  voteTurn: number;
+  setVoteTurn: (value: number) => void;
   onResolve: (votes: Record<string, boolean>) => void;
 }) {
-  const [draft, setDraft] = useState<Record<string, boolean | undefined>>({});
+  const [votes, setVotes] = useState<Record<string, boolean>>({});
+  const [currentVote, setCurrentVote] = useState<boolean | undefined>();
+  const voter = session.players[voteTurn];
 
-  const allSet = session.players.every((p) => draft[p.id] !== undefined);
+  function confirmVote() {
+    if (!voter || currentVote === undefined) return;
+    const nextVotes = { ...votes, [voter.id]: currentVote };
+    if (voteTurn === session.players.length - 1) {
+      onResolve(nextVotes);
+      setVotes({});
+      setCurrentVote(undefined);
+      return;
+    }
+    setVotes(nextVotes);
+    setCurrentVote(undefined);
+    setVoteTurn(voteTurn + 1);
+  }
 
   return (
     <section className="panel">
       <h2>Vote sur l’équipe</h2>
       <p className="muted">
-        Pour chaque joueur : approuve-t-il la mission proposée ? En cas d’égalité, la proposition
-        est <strong>refusée</strong>.
+        Passez le téléphone à chaque joueur. Les votes déjà enregistrés restent cachés jusqu’au
+        décompte final. En cas d’égalité, la proposition est <strong>refusée</strong>.
       </p>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {session.players.map((p) => (
-          <li key={p.id} style={{ marginBottom: '0.5rem' }}>
-            <strong>{p.name}</strong>
-            <div className="row" style={{ marginTop: '0.25rem' }}>
-              <button
-                type="button"
-                className={`btn ${draft[p.id] === true ? 'good' : ''}`}
-                onClick={() => setDraft({ ...draft, [p.id]: true })}
-              >
-                Approuver
-              </button>
-              <button
-                type="button"
-                className={`btn ${draft[p.id] === false ? 'evil' : ''}`}
-                onClick={() => setDraft({ ...draft, [p.id]: false })}
-              >
-                Refuser
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="private-turn">
+        <p className="eyebrow">
+          Vote privé {voteTurn + 1} / {session.players.length}
+        </p>
+        <h3>{voter?.name}, à vous de voter</h3>
+        <div className="row">
+          <button
+            type="button"
+            className={`btn good ${currentVote === true ? 'selected' : ''}`}
+            onClick={() => setCurrentVote(true)}
+          >
+            Approuver
+          </button>
+          <button
+            type="button"
+            className={`btn evil ${currentVote === false ? 'selected' : ''}`}
+            onClick={() => setCurrentVote(false)}
+          >
+            Refuser
+          </button>
+        </div>
+      </div>
       <button
         type="button"
         className="btn primary"
-        disabled={!allSet}
-        onClick={() => {
-          const votes: Record<string, boolean> = {};
-          for (const p of session.players) votes[p.id] = draft[p.id]!;
-          onResolve(votes);
-          setDraft({});
-        }}
+        disabled={currentVote === undefined}
+        onClick={confirmVote}
       >
-        Valider les votes
+        {voteTurn === session.players.length - 1
+          ? 'Révéler le décompte'
+          : 'Valider et passer le téléphone'}
       </button>
     </section>
   );

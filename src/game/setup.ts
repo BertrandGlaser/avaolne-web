@@ -4,7 +4,7 @@ import type { Player, Role } from './types';
 function rolePoolForCount(n: number): Role[] {
   switch (n) {
     case 5:
-      return ['merlin', 'loyal_servant', 'loyal_servant', 'morgana', 'assassin'];
+      return ['merlin', 'loyal_servant', 'loyal_servant', 'assassin', 'minion'];
     case 6:
       return [
         'merlin',
@@ -42,10 +42,10 @@ function rolePoolForCount(n: number): Role[] {
         'loyal_servant',
         'loyal_servant',
         'loyal_servant',
+        'loyal_servant',
         'morgana',
         'mordred',
         'assassin',
-        'minion',
       ];
     case 10:
       return [
@@ -54,10 +54,10 @@ function rolePoolForCount(n: number): Role[] {
         'loyal_servant',
         'loyal_servant',
         'loyal_servant',
+        'loyal_servant',
         'morgana',
         'mordred',
         'assassin',
-        'minion',
         'minion',
       ];
     default:

@@ -23,7 +23,7 @@ export const ROLE_LABELS_FR: Record<string, string> = {
   percival: 'Perceval',
   morgana: 'Morgane',
   assassin: 'Assassin',
-  minion: 'Serviteur de Mordred',
+  minion: 'Serviteur du Mal',
   mordred: 'Mordred',
   oberon: 'Oberon',
 };
