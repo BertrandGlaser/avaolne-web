@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import {
+  ALIGNMENT_COUNTS,
   QUEST_TEAM_SIZES,
   ROLE_DETAILS,
   ROLE_LABELS_FR,
@@ -40,14 +41,6 @@ export default function App() {
   );
 
   const playerCount = players.length;
-
-  useEffect(() => {
-    const count = namesFromDraft.length;
-    if (count >= 5 && count <= 10 && roleDraft.length !== count) {
-      setRoleDraft(defaultRolesForCount(count));
-    }
-    if (count < 5 || count > 10) setRoleDraft([]);
-  }, [namesFromDraft.length]);
 
   function resetAll() {
     setPhase('home');
@@ -158,7 +151,19 @@ export default function App() {
           <textarea
             rows={8}
             value={setupDraft}
-            onChange={(e) => setSetupDraft(e.target.value)}
+            onChange={(e) => {
+              const nextDraft = e.target.value;
+              const nextNames = nextDraft
+                .split(/\n|,/)
+                .map((name) => name.trim())
+                .filter(Boolean);
+              setSetupDraft(nextDraft);
+              setRoleDraft(
+                nextNames.length >= 5 && nextNames.length <= 10
+                  ? defaultRolesForCount(nextNames.length)
+                  : [],
+              );
+            }}
             placeholder={'Alice\nBob\n…'}
             style={{
               width: '100%',
@@ -189,7 +194,11 @@ export default function App() {
                 namesFromDraft.length < 5 ||
                 namesFromDraft.length > 10 ||
                 roleDraft.length !== namesFromDraft.length ||
-                !roleDraft.includes('merlin')
+                !roleDraft.includes('merlin') ||
+                roleDraft.filter((role) => ROLE_DETAILS[role].alignment === 'Bien').length !==
+                  ALIGNMENT_COUNTS[namesFromDraft.length]?.[0] ||
+                roleDraft.filter((role) => ROLE_DETAILS[role].alignment === 'Mal').length !==
+                  ALIGNMENT_COUNTS[namesFromDraft.length]?.[1]
               }
               onClick={launchGame}
             >
@@ -426,11 +435,18 @@ function RoleSelector({
     result[role] = (result[role] ?? 0) + 1;
     return result;
   }, {});
+  const [requiredGood, requiredEvil] = ALIGNMENT_COUNTS[playerCount]!;
+  const goodCount = roles.filter((role) => ROLE_DETAILS[role].alignment === 'Bien').length;
+  const evilCount = roles.length - goodCount;
 
   function changeRole(role: Role, amount: 1 | -1) {
     const current = counts[role] ?? 0;
+    const isEvilRole = ROLE_DETAILS[role].alignment === 'Mal';
+    const currentAlignmentCount = isEvilRole ? evilCount : goodCount;
+    const requiredAlignmentCount = isEvilRole ? requiredEvil : requiredGood;
     if (role === 'merlin' && amount === -1 && current <= 1) return;
     if (amount === 1 && roles.length >= playerCount) return;
+    if (amount === 1 && currentAlignmentCount >= requiredAlignmentCount) return;
     if (amount === 1 && role !== 'loyal_servant' && role !== 'minion' && current >= 1) return;
     if (amount === -1 && current === 0) return;
 
@@ -448,7 +464,11 @@ function RoleSelector({
           <h3>Personnages</h3>
           <p className="muted">La composition officielle est proposée. Merlin est obligatoire.</p>
         </div>
-        <strong className={roles.length === playerCount ? 'count-ready' : 'count-warning'}>
+        <strong className={
+          roles.length === playerCount && goodCount === requiredGood && evilCount === requiredEvil
+            ? 'count-ready'
+            : 'count-warning'
+        }>
           {roles.length} / {playerCount}
         </strong>
       </div>
@@ -456,6 +476,9 @@ function RoleSelector({
         {selectableRoles.map((role) => {
           const count = counts[role] ?? 0;
           const single = role !== 'loyal_servant' && role !== 'minion';
+          const isEvilRole = ROLE_DETAILS[role].alignment === 'Mal';
+          const currentAlignmentCount = isEvilRole ? evilCount : goodCount;
+          const requiredAlignmentCount = isEvilRole ? requiredEvil : requiredGood;
           return (
             <div className="role-option" key={role}>
               <div>
@@ -469,7 +492,10 @@ function RoleSelector({
                   type="button"
                   className="stepper-button"
                   aria-label={`Retirer ${ROLE_LABELS_FR[role]}`}
-                  disabled={count === 0 || (role === 'merlin' && count === 1)}
+                  disabled={
+                    count === 0 ||
+                    (role === 'merlin' && count === 1)
+                  }
                   onClick={() => changeRole(role, -1)}
                 >
                   −
@@ -479,7 +505,11 @@ function RoleSelector({
                   type="button"
                   className="stepper-button"
                   aria-label={`Ajouter ${ROLE_LABELS_FR[role]}`}
-                  disabled={roles.length >= playerCount || (single && count === 1)}
+                  disabled={
+                    roles.length >= playerCount ||
+                    (single && count === 1) ||
+                    currentAlignmentCount >= requiredAlignmentCount
+                  }
                   onClick={() => changeRole(role, 1)}
                 >
                   +
@@ -494,6 +524,10 @@ function RoleSelector({
           Ajoutez ou retirez des personnages pour atteindre exactement {playerCount} joueurs.
         </p>
       )}
+      <p className="selection-status">
+        Camp : <strong>{goodCount} / {requiredGood} Bien</strong> ·{' '}
+        <strong>{evilCount} / {requiredEvil} Mal</strong>
+      </p>
     </div>
   );
 }

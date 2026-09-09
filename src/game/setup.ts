@@ -1,3 +1,4 @@
+import { ALIGNMENT_COUNTS } from './constants';
 import type { Player, Role } from './types';
 
 /** Composition officielle Avalon (rôles optionnels inclus selon l'effectif). */
@@ -84,6 +85,16 @@ export function assignRoles(
   const selectedRoles = roles ?? defaultRolesForCount(n);
   if (selectedRoles.length !== n || !selectedRoles.includes('merlin')) {
     throw new Error('La composition doit contenir exactement un rôle par joueur et Merlin.');
+  }
+  const [goodCount, evilCount] = ALIGNMENT_COUNTS[n] ?? [];
+  const selectedEvilCount = selectedRoles.filter(isEvil).length;
+  if (
+    evilCount === undefined ||
+    goodCount === undefined ||
+    selectedEvilCount !== evilCount ||
+    selectedRoles.length - selectedEvilCount !== goodCount
+  ) {
+    throw new Error('La composition doit respecter le nombre officiel de rôles du Bien et du Mal.');
   }
   const pool = shuffle(selectedRoles, random);
   return trimmed.map((name, i) => ({
