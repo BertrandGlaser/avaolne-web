@@ -1,3 +1,5 @@
+import type { Role } from './types';
+
 /**
  * Tailles d'équipe par nombre de joueurs puis par mission (1–5).
  * Aligné sur les règles Avalon / The Resistance standard.
@@ -17,7 +19,7 @@ export function failsToFailMission(playerCount: number, missionIndex: number): n
   return 1;
 }
 
-export const ROLE_LABELS_FR: Record<string, string> = {
+export const ROLE_LABELS_FR: Record<Role, string> = {
   loyal_servant: 'Loyal serviteur d’Arthur',
   merlin: 'Merlin',
   percival: 'Perceval',
@@ -26,4 +28,42 @@ export const ROLE_LABELS_FR: Record<string, string> = {
   minion: 'Serviteur du Mal',
   mordred: 'Mordred',
   oberon: 'Oberon',
+};
+
+export type Alignment = 'Bien' | 'Mal';
+
+/** Source unique utilisée par le guide et les écrans de révélation. */
+export const ROLE_DETAILS: Record<Role, { alignment: Alignment; power: string }> = {
+  merlin: {
+    alignment: 'Bien',
+    power: 'Connaît les serviteurs du Mal, sauf Mordred. Il doit rester caché.',
+  },
+  percival: {
+    alignment: 'Bien',
+    power: 'Voit Merlin et Morgane comme deux personnes possibles, sans savoir laquelle est Merlin.',
+  },
+  loyal_servant: {
+    alignment: 'Bien',
+    power: 'N’a aucun pouvoir spécial et ne peut jouer que Succès en mission.',
+  },
+  morgana: {
+    alignment: 'Mal',
+    power: 'Est connue comme méchante par les autres méchants et apparaît comme Merlin pour Perceval.',
+  },
+  assassin: {
+    alignment: 'Mal',
+    power: 'Après trois missions réussies par le Bien, désigne le joueur qu’il croit être Merlin.',
+  },
+  minion: {
+    alignment: 'Mal',
+    power: 'Connaît les autres méchants, sauf Oberon, et peut jouer Échec.',
+  },
+  mordred: {
+    alignment: 'Mal',
+    power: 'Est invisible pour Merlin, mais connu des autres méchants, sauf Oberon.',
+  },
+  oberon: {
+    alignment: 'Mal',
+    power: 'Ne connaît aucun autre méchant et n’est pas connu des autres méchants.',
+  },
 };

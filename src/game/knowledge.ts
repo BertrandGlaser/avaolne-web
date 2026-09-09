@@ -6,7 +6,7 @@ export function roleLabel(role: Role): string {
   return ROLE_LABELS_FR[role] ?? role;
 }
 
-/** Indices pour Merlin : tous les méchants sauf Mordred. */
+/** Règle officielle : Merlin voit le Mal, sauf Mordred. */
 function merlinSees(viewer: Player, players: Player[]): string[] {
   const lines: string[] = [];
   for (const p of players) {
@@ -27,7 +27,7 @@ function percivalSees(viewer: Player, players: Player[]): string[] {
   return ambiguous.map((p) => `${p.name} pourrait être Merlin (Merlin ou Morgane).`);
 }
 
-/** Méchants : tous se voient sauf Oberon (isolé des deux côtés). */
+/** Règle officielle : Oberon est isolé ; les autres méchants se connaissent. */
 function evilTeamKnowledge(viewer: Player, players: Player[]): string[] {
   if (viewer.role === 'oberon') {
     return [

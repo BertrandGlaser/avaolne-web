@@ -182,25 +182,58 @@ input[type='text'] {
   gap: 0.35rem;
 }
 
-.person-selector {
+.player-selector {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.player-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
-  min-height: 11rem;
-  padding: 0.35rem;
+  padding: 0.8rem 0.9rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #121b17;
+  background: var(--panel-raised);
   color: var(--text);
+  cursor: pointer;
   font: inherit;
+  text-align: left;
 }
 
-.person-selector option {
-  padding: 0.65rem;
-  border-radius: 5px;
+.player-choice.selected {
+  border-color: var(--gold);
+  background: #39452a;
+  color: #fff8dd;
 }
 
-.person-selector option:checked {
-  background: var(--gold);
-  color: #171b16;
+.selection-status {
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+}
+
+.mission-team {
+  margin: 1rem 0;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-raised);
+}
+
+.mission-team .eyebrow { margin: 0 0 0.55rem; }
+
+.team-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.team-chip {
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  color: #fff1c2;
 }
 
 .private-turn {

@@ -1,39 +1,19 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import {
   QUEST_TEAM_SIZES,
-  failsToFailMission,
+  ROLE_DETAILS,
   ROLE_LABELS_FR,
 } from './game/constants';
 import { assignRoles, isGood } from './game/setup';
 import { knowledgeLines, roleLabel } from './game/knowledge';
-import type { GameSession, Phase, Player, ProposalState } from './game/types';
-
-function emptyProposal(leaderIndex: number): ProposalState {
-  return { leaderIndex, picks: new Set() };
-}
-
-type PhaseEnd = Extract<Phase, 'good_win' | 'evil_win'>;
-
-interface SessionTransition {
-  session: GameSession;
-  phaseEnd?: PhaseEnd;
-}
-
-function beginSession(players: Player[], leaderStart: number): GameSession {
-  return {
-    players,
-    startingLeaderIndex: leaderStart,
-    rejectCountThisRound: 0,
-    missionRound: 0,
-    leaderCursor: leaderStart,
-    phaseDetail: {
-      kind: 'propose',
-      proposal: emptyProposal(leaderStart),
-    },
-    votesHistory: [],
-    missionsHistory: [],
-  };
-}
+import {
+  beginSession,
+  completeMission,
+  confirmProposal,
+  tallyVote,
+  toggleProposalPick,
+} from './game/engine';
+import type { GameSession, Phase, Player } from './game/types';
 
 export default function App() {
   const [phase, setPhase] = useState<Phase>('home');
@@ -94,133 +74,6 @@ export default function App() {
     setMissionTurnIdx(0);
     setPendingMissionCards({});
     setVoteTurn(0);
-  }
-
-  function countSuccesses(sessionNow: GameSession) {
-    return sessionNow.missionsHistory.filter((m) => m.passed).length;
-  }
-
-  function countFailures(sessionNow: GameSession) {
-    return sessionNow.missionsHistory.filter((m) => !m.passed).length;
-  }
-
-  function updateProposal(
-    sess: GameSession,
-    patch: (prop: ProposalState) => ProposalState,
-  ): GameSession {
-    if (sess.phaseDetail.kind !== 'propose' && sess.phaseDetail.kind !== 'vote') {
-      return sess;
-    }
-    const proposal = patch(sess.phaseDetail.proposal);
-    return {
-      ...sess,
-      phaseDetail: { ...sess.phaseDetail, proposal },
-    };
-  }
-
-  function confirmProposal(sess: GameSession): GameSession {
-    if (sess.phaseDetail.kind !== 'propose') return sess;
-    const qs =
-      QUEST_TEAM_SIZES[playerCount]?.[sess.missionRound] ??
-      QUEST_TEAM_SIZES[5]![0];
-    if (sess.phaseDetail.proposal.picks.size !== qs) return sess;
-    return {
-      ...sess,
-      phaseDetail: {
-        kind: 'vote',
-        proposal: sess.phaseDetail.proposal,
-      },
-    };
-  }
-
-  function tallyVote(sess: GameSession, votes: Record<string, boolean>): SessionTransition {
-    if (sess.phaseDetail.kind !== 'vote') return { session: sess };
-    let approve = 0;
-    let reject = 0;
-    for (const p of sess.players) {
-      const v = votes[p.id];
-      if (v === true) approve++;
-      else reject++;
-    }
-    const accepted = approve > reject;
-    const nextHistory = [...sess.votesHistory, { proposalIndex: sess.missionRound, votes }];
-    if (!accepted) {
-      const rej = sess.rejectCountThisRound + 1;
-      if (rej >= 5) {
-        return {
-          session: { ...sess, rejectCountThisRound: rej, votesHistory: nextHistory },
-          phaseEnd: 'evil_win',
-        };
-      }
-      const nextLeader = (sess.leaderCursor + 1) % sess.players.length;
-      return {
-        session: {
-          ...sess,
-          votesHistory: nextHistory,
-          rejectCountThisRound: rej,
-          leaderCursor: nextLeader,
-          phaseDetail: {
-            kind: 'propose',
-            proposal: emptyProposal(nextLeader),
-          },
-        },
-      };
-    }
-    const teamIds = [...sess.phaseDetail.proposal.picks];
-    return {
-      session: {
-        ...sess,
-        votesHistory: nextHistory,
-        rejectCountThisRound: 0,
-        phaseDetail: { kind: 'mission', teamIds },
-      },
-    };
-  }
-
-  function completeMission(sess: GameSession, failCount: number): SessionTransition {
-    if (sess.phaseDetail.kind !== 'mission') return { session: sess };
-    const needFail = failsToFailMission(playerCount, sess.missionRound);
-    const passed = failCount < needFail;
-    const rec = {
-      roundIndex: sess.missionRound,
-      failsShown: failCount,
-      passed,
-    };
-    const missionsHistory = [...sess.missionsHistory, rec];
-    const ok = countSuccesses({ ...sess, missionsHistory });
-    const bad = countFailures({ ...sess, missionsHistory });
-    if (bad >= 3) {
-      return {
-        session: {
-          ...sess,
-          missionsHistory,
-        },
-        phaseEnd: 'evil_win',
-      };
-    }
-    if (ok >= 3) {
-      return {
-        session: {
-          ...sess,
-          missionsHistory,
-          phaseDetail: { kind: 'assassin_pick' },
-        },
-      };
-    }
-    const nextLeader = (sess.leaderCursor + 1) % sess.players.length;
-    const nextRound = sess.missionRound + 1;
-    return {
-      session: {
-        ...sess,
-        missionsHistory,
-        missionRound: nextRound,
-        leaderCursor: nextLeader,
-        phaseDetail: {
-          kind: 'propose',
-          proposal: emptyProposal(nextLeader),
-        },
-      },
-    };
   }
 
   const viewer = players[revealIdx];
@@ -395,34 +248,32 @@ export default function App() {
                 </strong>{' '}
                 joueur(s) pour la mission {session.missionRound + 1}.
               </p>
-              <select
-                className="person-selector"
-                multiple
-                value={[...session.phaseDetail.proposal.picks]}
-                onChange={(event) => {
-                  const selected = Array.from(
-                    event.target.selectedOptions,
-                    (option) => option.value,
+              <div className="player-selector" aria-label="Joueurs de la mission">
+                {session.players.map((p) => {
+                  const selected =
+                    session.phaseDetail.kind === 'propose' &&
+                    session.phaseDetail.proposal.picks.has(p.id);
+                  return (
+                    <button
+                      type="button"
+                      className={`player-choice ${selected ? 'selected' : ''}`}
+                      aria-pressed={selected}
+                      key={p.id}
+                      onClick={() =>
+                        setSession((s) =>
+                          s ? toggleProposalPick(s, playerCount, p.id) : s,
+                        )
+                      }
+                    >
+                      <span>{p.name}</span>
+                      <span aria-hidden="true">{selected ? '✓' : '+'}</span>
+                    </button>
                   );
-                  const limit = QUEST_TEAM_SIZES[playerCount]![session.missionRound];
-                  setSession((currentSession) =>
-                    currentSession
-                      ? updateProposal(currentSession, (proposal) => ({
-                          ...proposal,
-                          picks: new Set(selected.slice(0, limit)),
-                        }))
-                      : currentSession,
-                  );
-                }}
-              >
-                {session.players.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <p className="muted">
-                Sélectionnés : {session.phaseDetail.proposal.picks.size}
+                })}
+              </div>
+              <p className="selection-status" aria-live="polite">
+                Équipe sélectionnée : <strong>{session.phaseDetail.proposal.picks.size}</strong> /{' '}
+                {QUEST_TEAM_SIZES[playerCount]![session.missionRound]}
               </p>
               <div className="row" style={{ marginTop: '1rem' }}>
                 <button
@@ -434,7 +285,9 @@ export default function App() {
                       : 0) !==
                     QUEST_TEAM_SIZES[playerCount]![session.missionRound]
                   }
-                  onClick={() => setSession((s) => (s ? confirmProposal(s) : s))}
+                  onClick={() =>
+                    setSession((s) => (s ? confirmProposal(s, playerCount) : s))
+                  }
                 >
                   Lancer le vote
                 </button>
@@ -474,7 +327,7 @@ export default function App() {
                 setPendingMissionCards({});
                 setSession((s) => {
                   if (!s) return s;
-                  const t = completeMission(s, failCount);
+                  const t = completeMission(s, playerCount, failCount);
                   if (t.phaseEnd)
                     queueMicrotask(() => {
                       setPhase(t.phaseEnd!);
@@ -527,16 +380,7 @@ export default function App() {
 }
 
 function RulesGuide({ onBack }: { onBack: () => void }) {
-  const roles = [
-    ['merlin', 'Bien', 'Connaît les joueurs maléfiques, sauf Mordred. Il doit rester caché jusqu’à la fin.'],
-    ['percival', 'Bien', 'Voit Merlin et Morgane comme deux personnes possibles.'],
-    ['loyal_servant', 'Bien', 'N’a aucun pouvoir spécial et ne peut jouer que Succès en mission.'],
-    ['morgana', 'Mal', 'Apparaît comme Merlin aux yeux de Perceval.'],
-    ['assassin', 'Mal', 'Après trois missions réussies par le Bien, tente d’identifier Merlin.'],
-    ['minion', 'Mal', 'Connaît les autres méchants, sauf Oberon, et peut jouer Échec.'],
-    ['mordred', 'Mal', 'Est invisible pour Merlin, mais connu des autres méchants.'],
-    ['oberon', 'Mal', 'Ne connaît pas les autres méchants et n’est pas connu d’eux.'],
-  ] as const;
+  const roles = Object.entries(ROLE_DETAILS) as [keyof typeof ROLE_DETAILS, (typeof ROLE_DETAILS)[keyof typeof ROLE_DETAILS]][];
 
   return (
     <section className="panel guide">
@@ -563,13 +407,15 @@ function RulesGuide({ onBack }: { onBack: () => void }) {
       <div className="guide-section">
         <h3>Personnages</h3>
         <div className="role-list">
-          {roles.map(([role, camp, power]) => (
+          {roles.map(([role, details]) => (
             <article className="role-entry" key={role}>
               <div className="role-entry-heading">
                 <strong>{ROLE_LABELS_FR[role]}</strong>
-                <span className={`tag ${camp === 'Bien' ? 'good' : 'evil'}`}>{camp}</span>
+                <span className={`tag ${details.alignment === 'Bien' ? 'good' : 'evil'}`}>
+                  {details.alignment}
+                </span>
               </div>
-              <p className="muted">{power}</p>
+              <p className="muted">{details.power}</p>
             </article>
           ))}
         </div>
@@ -752,6 +598,14 @@ function MissionPanel({
   return (
     <section className="panel">
       <h2>Mission en cours</h2>
+      <div className="mission-team" aria-label="Joueurs envoyés en mission">
+        <p className="eyebrow">Équipe verrouillée</p>
+        <div className="team-chips">
+          {teamPlayers.map((player) => (
+            <span className="team-chip" key={player.id}>{player.name}</span>
+          ))}
+        </div>
+      </div>
       <p>
         Cartes jouées dans le secret : passez l’appareil à{' '}
         <strong>{current?.name}</strong> ({missionTurnIdx + 1} / {teamPlayers.length}).
