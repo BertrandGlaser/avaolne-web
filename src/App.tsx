@@ -1,10 +1,10 @@
-import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import {
   QUEST_TEAM_SIZES,
   ROLE_DETAILS,
   ROLE_LABELS_FR,
 } from './game/constants';
-import { assignRoles, isGood } from './game/setup';
+import { assignRoles, defaultRolesForCount, isGood } from './game/setup';
 import { knowledgeLines, roleLabel } from './game/knowledge';
 import {
   beginSession,
@@ -13,12 +13,13 @@ import {
   tallyVote,
   toggleProposalPick,
 } from './game/engine';
-import type { GameSession, Phase, Player } from './game/types';
+import type { GameSession, Phase, Player, Role } from './game/types';
 
 export default function App() {
   const [phase, setPhase] = useState<Phase>('home');
   const [players, setPlayers] = useState<Player[]>([]);
   const [setupDraft, setSetupDraft] = useState('');
+  const [roleDraft, setRoleDraft] = useState<Role[]>([]);
   const [session, setSession] = useState<GameSession | null>(null);
   const [revealIdx, setRevealIdx] = useState(0);
   const [roleHidden, setRoleHidden] = useState(true);
@@ -40,6 +41,14 @@ export default function App() {
 
   const playerCount = players.length;
 
+  useEffect(() => {
+    const count = namesFromDraft.length;
+    if (count >= 5 && count <= 10 && roleDraft.length !== count) {
+      setRoleDraft(defaultRolesForCount(count));
+    }
+    if (count < 5 || count > 10) setRoleDraft([]);
+  }, [namesFromDraft.length]);
+
   function resetAll() {
     setPhase('home');
     setPlayers([]);
@@ -50,17 +59,19 @@ export default function App() {
     setPendingMissionCards({});
     setVoteTurn(0);
     setSetupDraft('');
+    setRoleDraft([]);
   }
 
   function startSetup() {
     setPhase('setup');
     setSetupDraft('');
+    setRoleDraft([]);
   }
 
   function launchGame() {
     const n = namesFromDraft.length;
     if (n < 5 || n > 10) return;
-    const p = assignRoles(namesFromDraft);
+    const p = assignRoles(namesFromDraft, roleDraft);
     setPlayers(p);
     setRevealIdx(0);
     setRoleHidden(true);
@@ -163,11 +174,23 @@ export default function App() {
           <p className="muted">
             Joueurs détectés : <strong>{namesFromDraft.length}</strong>
           </p>
+          {namesFromDraft.length >= 5 && namesFromDraft.length <= 10 && (
+            <RoleSelector
+              playerCount={namesFromDraft.length}
+              roles={roleDraft}
+              onChange={setRoleDraft}
+            />
+          )}
           <div className="row">
             <button
               type="button"
               className="btn primary"
-              disabled={namesFromDraft.length < 5 || namesFromDraft.length > 10}
+              disabled={
+                namesFromDraft.length < 5 ||
+                namesFromDraft.length > 10 ||
+                roleDraft.length !== namesFromDraft.length ||
+                !roleDraft.includes('merlin')
+              }
               onClick={launchGame}
             >
               Tirer les rôles au hasard
@@ -374,6 +397,102 @@ export default function App() {
             Retour à l’accueil
           </button>
         </section>
+      )}
+    </div>
+  );
+}
+
+const selectableRoles: Role[] = [
+  'merlin',
+  'percival',
+  'loyal_servant',
+  'morgana',
+  'assassin',
+  'minion',
+  'mordred',
+  'oberon',
+];
+
+function RoleSelector({
+  playerCount,
+  roles,
+  onChange,
+}: {
+  playerCount: number;
+  roles: Role[];
+  onChange: (roles: Role[]) => void;
+}) {
+  const counts = roles.reduce<Partial<Record<Role, number>>>((result, role) => {
+    result[role] = (result[role] ?? 0) + 1;
+    return result;
+  }, {});
+
+  function changeRole(role: Role, amount: 1 | -1) {
+    const current = counts[role] ?? 0;
+    if (role === 'merlin' && amount === -1 && current <= 1) return;
+    if (amount === 1 && roles.length >= playerCount) return;
+    if (amount === 1 && role !== 'loyal_servant' && role !== 'minion' && current >= 1) return;
+    if (amount === -1 && current === 0) return;
+
+    if (amount === 1) onChange([...roles, role]);
+    else {
+      const index = roles.lastIndexOf(role);
+      onChange([...roles.slice(0, index), ...roles.slice(index + 1)]);
+    }
+  }
+
+  return (
+    <div className="role-selector">
+      <div className="role-selector-heading">
+        <div>
+          <h3>Personnages</h3>
+          <p className="muted">La composition officielle est proposée. Merlin est obligatoire.</p>
+        </div>
+        <strong className={roles.length === playerCount ? 'count-ready' : 'count-warning'}>
+          {roles.length} / {playerCount}
+        </strong>
+      </div>
+      <div className="role-options">
+        {selectableRoles.map((role) => {
+          const count = counts[role] ?? 0;
+          const single = role !== 'loyal_servant' && role !== 'minion';
+          return (
+            <div className="role-option" key={role}>
+              <div>
+                <strong>{ROLE_LABELS_FR[role]}</strong>
+                <span className={`tag ${ROLE_DETAILS[role].alignment === 'Bien' ? 'good' : 'evil'}`}>
+                  {ROLE_DETAILS[role].alignment}
+                </span>
+              </div>
+              <div className="role-stepper">
+                <button
+                  type="button"
+                  className="stepper-button"
+                  aria-label={`Retirer ${ROLE_LABELS_FR[role]}`}
+                  disabled={count === 0 || (role === 'merlin' && count === 1)}
+                  onClick={() => changeRole(role, -1)}
+                >
+                  −
+                </button>
+                <strong>{count}</strong>
+                <button
+                  type="button"
+                  className="stepper-button"
+                  aria-label={`Ajouter ${ROLE_LABELS_FR[role]}`}
+                  disabled={roles.length >= playerCount || (single && count === 1)}
+                  onClick={() => changeRole(role, 1)}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {roles.length !== playerCount && (
+        <p className="selection-status" role="alert">
+          Ajoutez ou retirez des personnages pour atteindre exactement {playerCount} joueurs.
+        </p>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 import type { Player, Role } from './types';
 
 /** Composition officielle Avalon (rôles optionnels inclus selon l'effectif). */
-function rolePoolForCount(n: number): Role[] {
+export function defaultRolesForCount(n: number): Role[] {
   switch (n) {
     case 5:
       return ['merlin', 'loyal_servant', 'loyal_servant', 'assassin', 'minion'];
@@ -74,10 +74,18 @@ function shuffle<T>(arr: T[], random: () => number): T[] {
   return a;
 }
 
-export function assignRoles(names: string[], random: () => number = Math.random): Player[] {
+export function assignRoles(
+  names: string[],
+  roles?: Role[],
+  random: () => number = Math.random,
+): Player[] {
   const trimmed = names.map((s) => s.trim()).filter(Boolean);
   const n = trimmed.length;
-  const pool = shuffle(rolePoolForCount(n), random);
+  const selectedRoles = roles ?? defaultRolesForCount(n);
+  if (selectedRoles.length !== n || !selectedRoles.includes('merlin')) {
+    throw new Error('La composition doit contenir exactement un rôle par joueur et Merlin.');
+  }
+  const pool = shuffle(selectedRoles, random);
   return trimmed.map((name, i) => ({
     id: `p-${i}-${Math.random().toString(36).slice(2, 9)}`,
     name,
