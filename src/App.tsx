@@ -252,7 +252,7 @@ export default function App() {
                 {session.players.map((p) => {
                   const selected =
                     session.phaseDetail.kind === 'propose' &&
-                    session.phaseDetail.proposal.picks.has(p.id);
+                    session.phaseDetail.proposal.picks.includes(p.id);
                   return (
                     <button
                       type="button"
@@ -272,7 +272,7 @@ export default function App() {
                 })}
               </div>
               <p className="selection-status" aria-live="polite">
-                Équipe sélectionnée : <strong>{session.phaseDetail.proposal.picks.size}</strong> /{' '}
+                Équipe sélectionnée : <strong>{session.phaseDetail.proposal.picks.length}</strong> /{' '}
                 {QUEST_TEAM_SIZES[playerCount]![session.missionRound]}
               </p>
               <div className="row" style={{ marginTop: '1rem' }}>
@@ -281,7 +281,7 @@ export default function App() {
                   className="btn primary"
                   disabled={
                     (session.phaseDetail.kind === 'propose'
-                      ? session.phaseDetail.proposal.picks.size
+                      ? session.phaseDetail.proposal.picks.length
                       : 0) !==
                     QUEST_TEAM_SIZES[playerCount]![session.missionRound]
                   }

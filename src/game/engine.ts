@@ -17,7 +17,7 @@ export function beginSession(players: Player[], leaderStart: number): GameSessio
     leaderCursor: leaderStart,
     phaseDetail: {
       kind: 'propose',
-      proposal: { leaderIndex: leaderStart, picks: new Set() },
+      proposal: { leaderIndex: leaderStart, picks: [] },
     },
     votesHistory: [],
     missionsHistory: [],
@@ -48,9 +48,11 @@ export function toggleProposalPick(
   if (session.phaseDetail.kind !== 'propose') return session;
   const teamSize = QUEST_TEAM_SIZES[playerCount]![session.missionRound];
   return updateProposal(session, (proposal) => {
-    const picks = new Set(proposal.picks);
-    if (picks.has(playerId)) picks.delete(playerId);
-    else if (picks.size < teamSize) picks.add(playerId);
+    const picks = proposal.picks.includes(playerId)
+      ? proposal.picks.filter((id) => id !== playerId)
+      : proposal.picks.length < teamSize
+        ? [...proposal.picks, playerId]
+        : proposal.picks;
     return { ...proposal, picks };
   });
 }
@@ -58,7 +60,7 @@ export function toggleProposalPick(
 export function confirmProposal(session: GameSession, playerCount: number): GameSession {
   if (session.phaseDetail.kind !== 'propose') return session;
   const teamSize = QUEST_TEAM_SIZES[playerCount]![session.missionRound];
-  if (session.phaseDetail.proposal.picks.size !== teamSize) return session;
+  if (session.phaseDetail.proposal.picks.length !== teamSize) return session;
   return {
     ...session,
     phaseDetail: { kind: 'vote', proposal: session.phaseDetail.proposal },
@@ -94,18 +96,25 @@ export function tallyVote(
         leaderCursor,
         phaseDetail: {
           kind: 'propose',
-          proposal: { leaderIndex: leaderCursor, picks: new Set() },
+          proposal: { leaderIndex: leaderCursor, picks: [] },
         },
       },
     };
   }
+
+  const requiredTeamSize = QUEST_TEAM_SIZES[session.players.length]![session.missionRound];
+  const teamIds = session.phaseDetail.proposal.picks.filter(
+    (playerId, index, picks) =>
+      picks.indexOf(playerId) === index && session.players.some((player) => player.id === playerId),
+  );
+  if (teamIds.length !== requiredTeamSize) return { session };
 
   return {
     session: {
       ...session,
       votesHistory,
       rejectCountThisRound: 0,
-      phaseDetail: { kind: 'mission', teamIds: [...session.phaseDetail.proposal.picks] },
+      phaseDetail: { kind: 'mission', teamIds },
     },
   };
 }
@@ -143,7 +152,7 @@ export function completeMission(
       leaderCursor,
       phaseDetail: {
         kind: 'propose',
-        proposal: { leaderIndex: leaderCursor, picks: new Set() },
+        proposal: { leaderIndex: leaderCursor, picks: [] },
       },
     },
   };

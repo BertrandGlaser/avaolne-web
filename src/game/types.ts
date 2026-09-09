@@ -25,7 +25,8 @@ export type Phase =
 
 export interface ProposalState {
   leaderIndex: number;
-  picks: Set<string>;
+  /** Identifiants des joueurs choisis, dans l’ordre de sélection. */
+  picks: string[];
 }
 
 export interface VoteRecord {
