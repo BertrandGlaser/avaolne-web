@@ -260,10 +260,13 @@ export default function App() {
 
           {session.phaseDetail.kind === 'propose' && (
             <section className="panel">
+              <p className="eyebrow">Mission {session.missionRound + 1} · choix de l’équipe</p>
               <h2>Proposition d’équipe</h2>
-              <p>
-                Chef :{' '}
-                <strong>{session.players[session.phaseDetail.proposal.leaderIndex]?.name}</strong>
+              <p className="lead-copy">
+                <span className="player-highlight">
+                  {session.players[session.phaseDetail.proposal.leaderIndex]?.name}
+                </span>{' '}
+                est le chef et choisit les joueurs de la mission.
               </p>
               <p className="muted">
                 Sélectionnez exactement{' '}
@@ -382,20 +385,27 @@ export default function App() {
       )}
 
       {(phase === 'good_win' || phase === 'evil_win') && (
-        <section className="panel">
-          <h2>{phase === 'good_win' ? 'Victoire du Bien !' : 'Victoire du Mal !'}</h2>
-          <p className="muted">
-            Les rôles étaient répartis ainsi — vérifiez ensemble avant une nouvelle partie.
+        <section className={`panel victory-panel ${phase === 'good_win' ? 'good-win' : 'evil-win'}`}>
+          <p className="eyebrow">La partie est terminée</p>
+          <div className="victory-mark" aria-hidden="true">{phase === 'good_win' ? '✓' : '!'}</div>
+          <h2>{phase === 'good_win' ? 'Le Bien remporte la partie' : 'Le Mal remporte la partie'}</h2>
+          <p className="victory-summary">
+            {phase === 'good_win'
+              ? 'Les serviteurs loyaux ont accompli leur mission.'
+              : 'Les forces du Mal ont pris le dessus sur la Table ronde.'}
           </p>
-          <ul>
+          <div className="role-reveal-list">
             {players.map((p) => (
-              <li key={p.id}>
-                <strong>{p.name}</strong> — {roleLabel(p.role)}
-              </li>
+              <div className="role-reveal-row" key={p.id}>
+                <strong>{p.name}</strong>
+                <span className={`tag ${isGood(p.role) ? 'good' : 'evil'}`}>
+                  {roleLabel(p.role)}
+                </span>
+              </div>
             ))}
-          </ul>
+          </div>
           <button type="button" className="btn primary" onClick={resetAll}>
-            Retour à l’accueil
+            Nouvelle partie
           </button>
         </section>
       )}
@@ -667,6 +677,10 @@ function VotePanel({
   const [votes, setVotes] = useState<Record<string, boolean>>({});
   const [currentVote, setCurrentVote] = useState<boolean | undefined>();
   const voter = session.players[voteTurn];
+  const teamIds = session.phaseDetail.kind === 'vote' ? session.phaseDetail.proposal.picks : [];
+  const proposedTeam = teamIds
+    .map((id) => session.players.find((player) => player.id === id))
+    .filter((player): player is Player => Boolean(player));
 
   function confirmVote() {
     if (!voter || currentVote === undefined) return;
@@ -689,11 +703,19 @@ function VotePanel({
         Passez le téléphone à chaque joueur. Les votes déjà enregistrés restent cachés jusqu’au
         décompte final. En cas d’égalité, la proposition est <strong>refusée</strong>.
       </p>
+      <div className="vote-team" aria-label="Équipe proposée au vote">
+        <span className="eyebrow">Équipe proposée</span>
+        <div className="team-chips">
+          {proposedTeam.map((player) => (
+            <span className="team-chip" key={player.id}>{player.name}</span>
+          ))}
+        </div>
+      </div>
       <div className="private-turn">
         <p className="eyebrow">
           Vote privé {voteTurn + 1} / {session.players.length}
         </p>
-        <h3>{voter?.name}, à vous de voter</h3>
+        <h3><span className="player-highlight">{voter?.name}</span>, à vous de voter</h3>
         <div className="row">
           <button
             type="button"

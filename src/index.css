@@ -59,6 +59,15 @@ a {
   font-size: 1.15rem;
 }
 
+.lead-copy {
+  font-size: 1.05rem;
+}
+
+.player-highlight {
+  color: #fff1bd;
+  font-weight: 700;
+}
+
 .roster-panel {
   padding-bottom: 1rem;
 }
@@ -417,6 +426,18 @@ input[type='text'] {
   background: #202d25;
 }
 
+.vote-team {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  border-left: 3px solid var(--gold);
+  background: #202d25;
+}
+
+.vote-team .eyebrow {
+  display: block;
+  margin-bottom: 0.55rem;
+}
+
 .private-turn h3 {
   margin: 0.25rem 0 1rem;
   font-family: 'DM Sans', system-ui, sans-serif;
@@ -514,6 +535,63 @@ details.rules summary {
   animation: reveal-in 0.45s 1.55s both;
   font-size: 1.1rem;
   font-weight: 700;
+}
+
+.victory-panel {
+  overflow: hidden;
+  padding: 2rem 1.35rem;
+  text-align: center;
+}
+
+.victory-panel.good-win {
+  border-color: var(--good);
+  background: linear-gradient(145deg, #193426, var(--panel));
+}
+
+.victory-panel.evil-win {
+  border-color: var(--evil);
+  background: linear-gradient(145deg, #3c2225, var(--panel));
+}
+
+.victory-mark {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin: 0.5rem auto 1rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-size: 2.3rem;
+  font-weight: 700;
+}
+
+.good-win .victory-mark { color: var(--good); }
+.evil-win .victory-mark { color: var(--evil); }
+
+.victory-panel h2 {
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.victory-summary {
+  margin: 0 auto 1.5rem;
+  color: var(--muted);
+}
+
+.role-reveal-list {
+  max-width: 32rem;
+  margin: 0 auto 1.5rem;
+  border-top: 1px solid var(--border);
+  text-align: left;
+}
+
+.role-reveal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border);
 }
 
 @keyframes reveal-in {
