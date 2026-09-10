@@ -25,7 +25,19 @@
 body {
   margin: 0;
   min-height: 100vh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background: radial-gradient(circle at 50% -10%, #294338 0, var(--bg) 42rem);
+}
+
+button,
+textarea,
+input,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  touch-action: manipulation;
 }
 
 h1,

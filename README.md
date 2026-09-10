@@ -39,3 +39,23 @@ npm run build
 ```
 
 Le build execute le controle TypeScript puis la compilation Vite.
+
+## Application iOS et Android
+
+Le projet utilise Capacitor pour reutiliser le code React dans des applications natives.
+
+```bash
+npm run mobile:sync
+npm run mobile:ios
+npm run mobile:android
+```
+
+`mobile:sync` reconstruit l'application web et copie les assets dans les projets natifs.
+`mobile:ios` ouvre le projet dans Xcode. `mobile:android` ouvre le projet dans Android Studio.
+
+Prerequis :
+
+- iOS : macOS, Xcode et un compte Apple Developer pour installer ou publier sur un iPhone.
+- Android : Android Studio et un SDK Android installe.
+
+L'application est actuellement locale et ne demande aucun serveur ni compte utilisateur.
