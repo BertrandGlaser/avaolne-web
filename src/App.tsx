@@ -109,6 +109,13 @@ export default function App() {
             )}
           </div>
         </div>
+        <div className="tavern-ambience" aria-hidden="true">
+          <span className="tavern-ambience-line" />
+          <span className="tavern-candle candle-left" />
+          <span className="tavern-ambience-motto">✦ WHERE LEGENDS ARE MADE ✦</span>
+          <span className="tavern-candle candle-right" />
+          <span className="tavern-ambience-line" />
+        </div>
       </header>
 
       {phase === 'home' && (

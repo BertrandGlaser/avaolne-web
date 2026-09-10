@@ -64,12 +64,31 @@ a {
   padding: 1.25rem 1rem 3rem;
 }
 
+.wrapper::before {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 28%, transparent 0 17rem, rgba(6, 2, 1, 0.55) 52rem);
+  content: '';
+  pointer-events: none;
+}
+
+.wrapper > header,
+.wrapper > section {
+  animation: tavern-rise 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.wrapper > section:nth-of-type(2) { animation-delay: 0.08s; }
+.wrapper > section:nth-of-type(3) { animation-delay: 0.16s; }
+
 .tavern-shell {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
   background:
+    linear-gradient(180deg, rgba(18, 8, 4, 0.28), rgba(18, 8, 4, 0.88) 78%),
     linear-gradient(90deg, rgba(24, 10, 5, 0.72), transparent 14%, transparent 86%, rgba(24, 10, 5, 0.72)),
+    url('/tavern-bg.jpg') center top / cover fixed,
     repeating-linear-gradient(0deg, rgba(105, 55, 27, 0.1) 0 3px, transparent 3px 8px);
 }
 
@@ -95,6 +114,50 @@ a {
   inset: 0;
   pointer-events: none;
   background: radial-gradient(ellipse at 50% 0%, transparent 0 14rem, rgba(4, 2, 1, 0.48) 48rem);
+}
+
+.tavern-ambience {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 1.1rem;
+  color: rgba(235, 190, 93, 0.72);
+}
+
+.tavern-ambience-line {
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, var(--border));
+}
+
+.tavern-ambience-line:last-child { background: linear-gradient(90deg, var(--border), transparent); }
+
+.tavern-ambience-motto {
+  font-size: 0.62rem;
+  letter-spacing: 0.25em;
+  white-space: nowrap;
+  text-shadow: 0 0 0.8rem rgba(255, 194, 72, 0.8);
+}
+
+.tavern-candle {
+  position: relative;
+  width: 0.45rem;
+  height: 0.8rem;
+  border-radius: 50% 50% 45% 45%;
+  background: var(--candle);
+  box-shadow: 0 0 0.5rem var(--candle), 0 0 1.5rem var(--candle);
+  animation: candle-flicker 1.8s ease-in-out infinite alternate;
+}
+
+.tavern-candle::before {
+  position: absolute;
+  top: -0.55rem;
+  left: 0.06rem;
+  width: 0.32rem;
+  height: 0.6rem;
+  border-radius: 50% 50% 45% 45%;
+  background: #fff4bc;
+  content: '';
 }
 
 .panel {
@@ -275,10 +338,14 @@ a {
   background: var(--panel-raised);
   color: var(--text);
   padding: 0.55rem 1rem;
+  box-shadow: inset 0 1px rgba(255, 222, 151, 0.08), 0 0.3rem 0.6rem rgba(0, 0, 0, 0.16);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
 .btn:hover {
   border-color: var(--muted);
+  transform: translateY(-2px);
+  box-shadow: 0 0.45rem 1rem rgba(0, 0, 0, 0.24), 0 0 1rem rgba(235, 185, 85, 0.12);
 }
 
 .btn.primary {
@@ -805,6 +872,16 @@ details.rules summary {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes tavern-rise {
+  from { opacity: 0; transform: translateY(1rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes candle-flicker {
+  from { transform: scaleY(0.8) rotate(-3deg); opacity: 0.7; }
+  to { transform: scaleY(1.15) rotate(3deg); opacity: 1; }
+}
+
 @keyframes pulse-kicker {
   0%, 100% { opacity: 0.65; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.04); text-shadow: 0 0 1.5rem var(--gold); }
@@ -850,4 +927,16 @@ details.rules summary {
   .role-list { grid-template-columns: 1fr; }
   .roster-grid { grid-template-columns: 1fr; }
   .roster-heading { flex-direction: column; gap: 0.25rem; }
+  .tavern-ambience-motto { font-size: 0.5rem; letter-spacing: 0.12em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
