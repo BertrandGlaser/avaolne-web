@@ -13,14 +13,12 @@ export function beginSession(players: Player[], leaderStart: number): GameSessio
   return {
     players,
     startingLeaderIndex: leaderStart,
-    rejectCountThisRound: 0,
     missionRound: 0,
     leaderCursor: leaderStart,
     phaseDetail: {
       kind: 'propose',
       proposal: { leaderIndex: leaderStart, picks: [] },
     },
-    votesHistory: [],
     missionsHistory: [],
   };
 }
@@ -29,7 +27,7 @@ export function updateProposal(
   session: GameSession,
   patch: (proposal: ProposalState) => ProposalState,
 ): GameSession {
-  if (session.phaseDetail.kind !== 'propose' && session.phaseDetail.kind !== 'vote') {
+  if (session.phaseDetail.kind !== 'propose') {
     return session;
   }
   return {
@@ -64,61 +62,7 @@ export function confirmProposal(session: GameSession, playerCount: number): Game
   if (session.phaseDetail.proposal.picks.length !== teamSize) return session;
   return {
     ...session,
-    phaseDetail: { kind: 'vote', proposal: session.phaseDetail.proposal },
-  };
-}
-
-export function tallyVote(
-  session: GameSession,
-  votes: Record<string, boolean>,
-): SessionTransition {
-  if (session.phaseDetail.kind !== 'vote') return { session };
-  const approve = Object.values(votes).filter(Boolean).length;
-  // Avalon demande une majorité stricte : une égalité refuse l’équipe.
-  const accepted = approve > session.players.length / 2;
-  const votesHistory = [
-    ...session.votesHistory,
-    { proposalIndex: session.missionRound, votes },
-  ];
-
-  if (!accepted) {
-    const rejectCount = session.rejectCountThisRound + 1;
-    if (rejectCount >= 5) {
-      return {
-        session: { ...session, rejectCountThisRound: rejectCount, votesHistory },
-        phaseEnd: 'evil_win',
-      };
-    }
-    const leaderCursor = (session.leaderCursor + 1) % session.players.length;
-    return {
-      session: {
-        ...session,
-        votesHistory,
-        rejectCountThisRound: rejectCount,
-        leaderCursor,
-        phaseDetail: {
-          kind: 'propose',
-          proposal: { leaderIndex: leaderCursor, picks: [] },
-        },
-      },
-    };
-  }
-
-  const requiredTeamSize = QUEST_TEAM_SIZES[session.players.length]![session.missionRound];
-  // Le vote valide l’équipe proposée, jamais l’ensemble des joueurs.
-  const teamIds = session.phaseDetail.proposal.picks.filter(
-    (playerId, index, picks) =>
-      picks.indexOf(playerId) === index && session.players.some((player) => player.id === playerId),
-  );
-  if (teamIds.length !== requiredTeamSize) return { session };
-
-  return {
-    session: {
-      ...session,
-      votesHistory,
-      rejectCountThisRound: 0,
-      phaseDetail: { kind: 'mission', teamIds },
-    },
+    phaseDetail: { kind: 'mission', teamIds: session.phaseDetail.proposal.picks },
   };
 }
 

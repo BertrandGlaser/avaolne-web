@@ -29,11 +29,6 @@ export interface ProposalState {
   picks: string[];
 }
 
-export interface VoteRecord {
-  proposalIndex: number;
-  votes: Record<string, boolean>;
-}
-
 export interface MissionRecord {
   roundIndex: number;
   failsShown: number;
@@ -43,15 +38,12 @@ export interface MissionRecord {
 export interface GameSession {
   players: Player[];
   startingLeaderIndex: number;
-  rejectCountThisRound: number;
   /** Current mission round 0–4 */
   missionRound: number;
   leaderCursor: number;
   phaseDetail:
     | { kind: 'propose'; proposal: ProposalState }
-    | { kind: 'vote'; proposal: ProposalState }
     | { kind: 'mission'; teamIds: string[] }
     | { kind: 'assassin_pick'; merlinGuess?: string };
-  votesHistory: VoteRecord[];
   missionsHistory: MissionRecord[];
 }

@@ -11,7 +11,6 @@ import {
   beginSession,
   completeMission,
   confirmProposal,
-  tallyVote,
   toggleProposalPick,
 } from './game/engine';
 import type { GameSession, Phase, Player, Role } from './game/types';
@@ -29,7 +28,6 @@ export default function App() {
   const [pendingMissionCards, setPendingMissionCards] = useState<
     Record<string, 'success' | 'fail'>
   >({});
-  const [voteTurn, setVoteTurn] = useState(0);
 
   const namesFromDraft = useMemo(
     () =>
@@ -50,7 +48,6 @@ export default function App() {
     setRoleHidden(true);
     setMissionTurnIdx(0);
     setPendingMissionCards({});
-    setVoteTurn(0);
     setSetupDraft('');
     setRoleDraft([]);
   }
@@ -77,7 +74,6 @@ export default function App() {
     setPhase('playing');
     setMissionTurnIdx(0);
     setPendingMissionCards({});
-    setVoteTurn(0);
   }
 
   const viewer = players[revealIdx];
@@ -119,12 +115,8 @@ export default function App() {
             <ul className="muted">
               <li>5 à 10 joueurs, comme dans les règles officielles ; les rôles sont tirés selon l’effectif.</li>
               <li>
-                À tour de rôle, un chef propose une équipe ; tout le monde vote ; si la mission part,
-                les membres jouent Succès ou Échec (les Loyaux ne peuvent jouer que Succès).
-              </li>
-              <li>
-                Après 5 propositions refusées d’affilée pour une même mission, le Mal gagne la
-                partie.
+                À tour de rôle, un chef propose une équipe ; la table vote à main levée ; les membres
+                jouent ensuite Succès ou Échec (les Loyaux ne peuvent jouer que Succès).
               </li>
               <li>
                 Si le Bien réussit 3 missions, l’Assassin désigne Merlin : bonne désignation =
@@ -320,30 +312,10 @@ export default function App() {
                     setSession((s) => (s ? confirmProposal(s, playerCount) : s))
                   }
                 >
-                  Lancer le vote
+                  Valider à main levée
                 </button>
               </div>
             </section>
-          )}
-
-          {session.phaseDetail.kind === 'vote' && (
-            <VotePanel
-              session={session}
-              voteTurn={voteTurn}
-              setVoteTurn={setVoteTurn}
-              onResolve={(votes) => {
-                setVoteTurn(0);
-                setSession((s) => {
-                  if (!s) return s;
-                  const t = tallyVote(s, votes);
-                  if (t.phaseEnd)
-                    queueMicrotask(() => {
-                      setPhase(t.phaseEnd!);
-                    });
-                  return t.session;
-                });
-              }}
-            />
           )}
 
           {session.phaseDetail.kind === 'mission' && (
@@ -552,13 +524,13 @@ function RulesGuide({ onBack }: { onBack: () => void }) {
       </div>
       <div className="guide-section">
         <h3>But de la partie</h3>
-        <p>Le Bien gagne en réussissant trois missions, sauf si l’Assassin trouve Merlin. Le Mal gagne avec trois missions échouées ou cinq équipes refusées d’affilée.</p>
+        <p>Le Bien gagne en réussissant trois missions, sauf si l’Assassin trouve Merlin. Le Mal gagne avec trois missions échouées.</p>
       </div>
       <div className="guide-section">
         <h3>Déroulement d’une mission</h3>
         <ol className="muted">
           <li>Le chef choisit exactement le nombre de joueurs demandé.</li>
-          <li>Chaque joueur vote secrètement pour accepter ou refuser l’équipe.</li>
+          <li>Tout le monde vote à main levée pour valider l’équipe proposée.</li>
           <li>Si l’équipe est acceptée, ses membres jouent une carte en secret.</li>
           <li>Une carte Échec suffit normalement à faire échouer la mission. À 7 joueurs ou plus, la quatrième mission demande deux Échecs.</li>
         </ol>
@@ -598,8 +570,6 @@ function BoardStrip({
       <h2>Table ronde</h2>
       <p className="muted">
         Quêtes réussies : <strong>{succ}</strong> · Quêtes échouées : <strong>{fail}</strong>
-        {' · '}
-        Propositions refusées d’affilée : <strong>{session.rejectCountThisRound}</strong> / 5
       </p>
       <div className="quest-track">
         {[0, 1, 2, 3, 4].map((i) => {
@@ -631,11 +601,11 @@ function BoardStrip({
 /** Vue de repérage : les rôles restent secrets, les statuts publics restent visibles. */
 function PlayerRoster({ session }: { session: GameSession }) {
   const detail = session.phaseDetail;
-  const proposedIds = detail.kind === 'propose' || detail.kind === 'vote'
+  const proposedIds = detail.kind === 'propose'
     ? detail.proposal.picks
     : [];
   const missionIds = detail.kind === 'mission' ? detail.teamIds : [];
-  const leaderIndex = detail.kind === 'propose' || detail.kind === 'vote'
+  const leaderIndex = detail.kind === 'propose'
     ? detail.proposal.leaderIndex
     : session.leaderCursor;
 
@@ -663,90 +633,6 @@ function PlayerRoster({ session }: { session: GameSession }) {
           );
         })}
       </div>
-    </section>
-  );
-}
-
-function VotePanel({
-  session,
-  voteTurn,
-  setVoteTurn,
-  onResolve,
-}: {
-  session: GameSession;
-  voteTurn: number;
-  setVoteTurn: (value: number) => void;
-  onResolve: (votes: Record<string, boolean>) => void;
-}) {
-  const [votes, setVotes] = useState<Record<string, boolean>>({});
-  const [currentVote, setCurrentVote] = useState<boolean | undefined>();
-  const voter = session.players[voteTurn];
-  const teamIds = session.phaseDetail.kind === 'vote' ? session.phaseDetail.proposal.picks : [];
-  const proposedTeam = teamIds
-    .map((id) => session.players.find((player) => player.id === id))
-    .filter((player): player is Player => Boolean(player));
-
-  function confirmVote() {
-    if (!voter || currentVote === undefined) return;
-    const nextVotes = { ...votes, [voter.id]: currentVote };
-    if (voteTurn === session.players.length - 1) {
-      onResolve(nextVotes);
-      setVotes({});
-      setCurrentVote(undefined);
-      return;
-    }
-    setVotes(nextVotes);
-    setCurrentVote(undefined);
-    setVoteTurn(voteTurn + 1);
-  }
-
-  return (
-    <section className="panel">
-      <h2>Vote sur l’équipe</h2>
-      <p className="muted">
-        Passez le téléphone à chaque joueur. Les votes déjà enregistrés restent cachés jusqu’au
-        décompte final. En cas d’égalité, la proposition est <strong>refusée</strong>.
-      </p>
-      <div className="vote-team" aria-label="Équipe proposée au vote">
-        <span className="eyebrow">Équipe proposée</span>
-        <div className="team-chips">
-          {proposedTeam.map((player) => (
-            <span className="team-chip" key={player.id}>{player.name}</span>
-          ))}
-        </div>
-      </div>
-      <div className="private-turn">
-        <p className="eyebrow">
-          Vote privé {voteTurn + 1} / {session.players.length}
-        </p>
-        <h3><span className="player-highlight">{voter?.name}</span>, à vous de voter</h3>
-        <div className="row">
-          <button
-            type="button"
-            className={`btn good ${currentVote === true ? 'selected' : ''}`}
-            onClick={() => setCurrentVote(true)}
-          >
-            Approuver
-          </button>
-          <button
-            type="button"
-            className={`btn evil ${currentVote === false ? 'selected' : ''}`}
-            onClick={() => setCurrentVote(false)}
-          >
-            Refuser
-          </button>
-        </div>
-      </div>
-      <button
-        type="button"
-        className="btn primary"
-        disabled={currentVote === undefined}
-        onClick={confirmVote}
-      >
-        {voteTurn === session.players.length - 1
-          ? 'Révéler le décompte'
-          : 'Valider et passer le téléphone'}
-      </button>
     </section>
   );
 }
@@ -783,15 +669,17 @@ function MissionPanel({
       const fails = Object.values(next).filter((c) => c === 'fail').length;
       const successes = teamPlayers.length - fails;
       setReveal({ successes, hasFailure: fails > 0 });
-      window.setTimeout(() => onComplete(fails), 2200);
+      window.setTimeout(() => onComplete(fails), 7000);
     } else setMissionTurnIdx(missionTurnIdx + 1);
   }
 
   if (reveal) {
     return (
-      <section className="panel mission-reveal" aria-live="polite">
-        <p className="eyebrow">Résultat collectif</p>
-        <h2>Les cartes sont révélées</h2>
+      <section className={`mission-reveal ${reveal.hasFailure ? 'mission-failed' : 'mission-passed'}`} aria-live="polite">
+        <div className="mission-reveal-content">
+          <p className="eyebrow">Résultat collectif</p>
+          <p className="mission-reveal-kicker">La Table ronde retient son souffle</p>
+          <h2>Les cartes sont révélées</h2>
         <div className="reveal-lights" aria-label="Révélation progressive du résultat">
           {Array.from({ length: reveal.successes }).map((_, index) => (
             <span className="reveal-light success" key={`success-${index}`} />
@@ -801,6 +689,7 @@ function MissionPanel({
         <p className="reveal-caption">
           {reveal.hasFailure ? 'La mission a échoué.' : 'La mission est réussie.'}
         </p>
+        </div>
       </section>
     );
   }
