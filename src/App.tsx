@@ -28,6 +28,10 @@ export default function App() {
   const [pendingMissionCards, setPendingMissionCards] = useState<
     Record<string, 'success' | 'fail'>
   >({});
+  const [assassinReveal, setAssassinReveal] = useState<{
+    target: Player;
+    correct: boolean;
+  } | null>(null);
 
   const namesFromDraft = useMemo(
     () =>
@@ -48,6 +52,7 @@ export default function App() {
     setRoleHidden(true);
     setMissionTurnIdx(0);
     setPendingMissionCards({});
+    setAssassinReveal(null);
     setSetupDraft('');
     setRoleDraft([]);
   }
@@ -79,13 +84,16 @@ export default function App() {
   const viewer = players[revealIdx];
 
   return (
-    <div className="wrapper">
+    <div className="tavern-shell">
+      <div className="tavern-glow" aria-hidden="true" />
+      <div className="wrapper">
       <header style={{ marginBottom: '1.25rem' }}>
         <div className="header-row">
           <div>
+            <p className="tavern-sign">🍺 THE ROUND TABLE INN 🍺</p>
             <h1 style={{ margin: '0 0 0.35rem', fontSize: '1.65rem' }}>Avalon</h1>
             <p className="muted" style={{ margin: 0 }}>
-              Déduction sociale autour de la Table ronde — interface locale, un seul téléphone.
+              La taverne est fermée aux innocents. Entrez, si vous l’osez.
             </p>
           </div>
           <div className="header-actions">
@@ -347,7 +355,13 @@ export default function App() {
               onPickMerlin={(merlinId) => {
                 const merlin = session.players.find((p) => p.role === 'merlin');
                 const ok = merlin?.id === merlinId;
-                setPhase(ok ? 'evil_win' : 'good_win');
+                const target = session.players.find((p) => p.id === merlinId);
+                if (!target) return;
+                setAssassinReveal({ target, correct: ok });
+                window.setTimeout(() => {
+                  setAssassinReveal(null);
+                  setPhase(ok ? 'evil_win' : 'good_win');
+                }, 10500);
               }}
             />
           )}
@@ -385,6 +399,8 @@ export default function App() {
           </button>
         </section>
       )}
+      {assassinReveal && <AssassinReveal reveal={assassinReveal} />}
+    </div>
     </div>
   );
 }
@@ -675,28 +691,24 @@ function MissionPanel({
 
   if (reveal) {
     return (
-      <section className={`mission-reveal ${reveal.hasFailure ? 'mission-failed' : 'mission-passed'}`} aria-live="polite">
+      <section className="mission-reveal" aria-live="polite">
         <div className="mission-reveal-content">
-          <p className="eyebrow">Résultat collectif</p>
+          <p className="eyebrow">Les cartes restent face cachée</p>
           <p className="mission-reveal-kicker">⚔️ La Table ronde retient son souffle ⚔️</p>
-          <h2>Les cartes sont révélées</h2>
+          <h2>Le destin de la mission...</h2>
           <div className="reveal-lights" aria-label="Révélation progressive du résultat">
             {Array.from({ length: reveal.successes }).map((_, index) => (
               <span
                 className="reveal-light success"
                 key={`success-${index}`}
                 style={{ animationDelay: `${1.8 + index * 1.35}s` }}
-              >
-                ✓
-              </span>
+              />
             ))}
             {reveal.hasFailure && (
               <span
                 className="reveal-light failure"
                 style={{ animationDelay: `${1.8 + reveal.successes * 1.35}s` }}
-              >
-                ✕
-              </span>
+              />
             )}
           </div>
           <p
@@ -745,6 +757,30 @@ function MissionPanel({
       </div>
       <p className="muted" style={{ marginTop: '0.75rem' }}>
         Les Loyaux et Merlin / Percival ne peuvent jouer que Succès. Les méchants peuvent choisir.
+      </p>
+    </section>
+  );
+}
+
+function AssassinReveal({
+  reveal,
+}: {
+  reveal: { target: Player; correct: boolean };
+}) {
+  return (
+    <section className={`assassin-reveal ${reveal.correct ? 'assassin-wins' : 'assassin-fails'}`} aria-live="assertive">
+      <div className="assassin-reveal-stars" aria-hidden="true">✦　✧　✦　✧　✦</div>
+      <p className="assassin-eyebrow">☠️ Le dernier murmure de la taverne ☠️</p>
+      <h2>L’Assassin a choisi...</h2>
+      <p className="assassin-target-label">La cible est</p>
+      <div className="assassin-target">{reveal.target.name}</div>
+      <div className="assassin-verdict">
+        {reveal.correct ? '🩸 MERLIN EST DÉMASQUÉ 🩸' : '🛡️ MERLIN EST SAUVÉ 🛡️'}
+      </div>
+      <p className="assassin-verdict-subtitle">
+        {reveal.correct
+          ? 'Le royaume tombe dans la nuit.'
+          : 'Le dernier espoir du Bien survit à la nuit.'}
       </p>
     </section>
   );

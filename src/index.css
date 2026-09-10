@@ -1,15 +1,16 @@
 :root {
   color-scheme: dark;
-  --bg: #101715;
-  --panel: #18231f;
-  --panel-raised: #20302a;
-  --border: #34453d;
-  --text: #f2efe5;
-  --muted: #a4b3aa;
-  --gold: #e8bd62;
-  --good: #65c486;
-  --evil: #e76b62;
-  --accent: #e8bd62;
+  --bg: #170d09;
+  --panel: #2a1710;
+  --panel-raised: #3a2115;
+  --border: #765137;
+  --text: #f5e4c2;
+  --muted: #c1a989;
+  --gold: #e9b955;
+  --good: #61c982;
+  --evil: #e7594f;
+  --accent: #e9b955;
+  --candle: #ffcf68;
   font-family: 'DM Sans', system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
@@ -26,7 +27,11 @@ body {
   margin: 0;
   min-height: 100vh;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  background: radial-gradient(circle at 50% -10%, #294338 0, var(--bg) 42rem);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 175, 69, 0.16), transparent 18rem),
+    radial-gradient(circle at 82% 16%, rgba(237, 109, 39, 0.12), transparent 20rem),
+    repeating-linear-gradient(92deg, rgba(255, 198, 104, 0.025) 0 2px, transparent 2px 7px),
+    #120906;
 }
 
 button,
@@ -52,15 +57,53 @@ a {
 }
 
 .wrapper {
+  position: relative;
+  z-index: 1;
   max-width: 760px;
   margin: 0 auto;
   padding: 1.25rem 1rem 3rem;
 }
 
+.tavern-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(24, 10, 5, 0.72), transparent 14%, transparent 86%, rgba(24, 10, 5, 0.72)),
+    repeating-linear-gradient(0deg, rgba(105, 55, 27, 0.1) 0 3px, transparent 3px 8px);
+}
+
+.tavern-shell::before,
+.tavern-shell::after {
+  position: fixed;
+  z-index: 0;
+  width: 18rem;
+  height: 24rem;
+  border-radius: 50%;
+  content: '';
+  pointer-events: none;
+  filter: blur(2.5rem);
+  opacity: 0.3;
+}
+
+.tavern-shell::before { top: -8rem; left: -8rem; background: var(--candle); }
+.tavern-shell::after { top: -8rem; right: -8rem; background: #f07a3e; }
+
+.tavern-glow {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, transparent 0 14rem, rgba(4, 2, 1, 0.48) 48rem);
+}
+
 .panel {
-  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  background:
+    linear-gradient(135deg, rgba(255, 196, 111, 0.045), transparent 35%),
+    color-mix(in srgb, var(--panel) 95%, transparent);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.2), inset 0 1px rgba(255, 220, 150, 0.06);
   padding: 1.25rem 1.35rem;
   margin-bottom: 1rem;
 }
@@ -69,6 +112,15 @@ a {
   margin-top: 0;
   color: var(--gold);
   font-size: 1.15rem;
+}
+
+.tavern-sign {
+  margin: 0 0 0.2rem;
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-shadow: 0 0 1rem rgba(255, 188, 72, 0.55);
 }
 
 .lead-copy {
@@ -545,16 +597,16 @@ details.rules summary {
   animation: mission-reveal-in 0.9s ease-out both;
 }
 
-.mission-reveal.mission-failed {
-  animation: mission-reveal-in 0.9s ease-out both, mission-shake 0.18s 7.2s 5;
-}
-
 .mission-reveal::before,
 .mission-reveal::after {
   position: absolute;
   inset: -20%;
   content: '';
   pointer-events: none;
+}
+
+.mission-reveal::after {
+  background: radial-gradient(circle, transparent 0 22%, rgba(13, 5, 2, 0.76) 72%);
 }
 
 .mission-reveal::before {
@@ -573,11 +625,11 @@ details.rules summary {
 }
 
 .mission-passed {
-  background: radial-gradient(circle at center, #28583d 0%, #101715 72%);
+  background: radial-gradient(circle at center, #342115 0%, #120906 72%);
 }
 
 .mission-failed {
-  background: radial-gradient(circle at center, #6a292b 0%, #101315 72%);
+  background: radial-gradient(circle at center, #342115 0%, #120906 72%);
 }
 
 .mission-reveal-kicker {
@@ -627,6 +679,38 @@ details.rules summary {
   color: var(--evil);
   color: #310d10;
 }
+
+.assassin-reveal {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  overflow: hidden;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(106, 21, 21, 0.7), transparent 18rem),
+    radial-gradient(circle at 50% 50%, #24100e 0, #070303 68%);
+  text-align: center;
+  animation: assassin-arrival 1.5s ease-out both;
+}
+
+.assassin-reveal::before {
+  position: absolute;
+  inset: -30%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 210, 104, 0.1) 0deg 2deg, transparent 2deg 16deg);
+  content: '';
+  animation: reveal-spin 26s linear infinite;
+}
+
+.assassin-reveal > * { position: relative; z-index: 1; }
+.assassin-reveal-stars { color: var(--gold); font-size: 2rem; animation: stars-pulse 2s 1s infinite; }
+.assassin-eyebrow { color: #c98b74; letter-spacing: 0.2em; text-transform: uppercase; }
+.assassin-reveal h2 { margin: 1rem 0 2.5rem; font-size: clamp(2rem, 7vw, 5rem); animation: reveal-title 2s 1.2s both; }
+.assassin-target-label { margin: 0; color: var(--muted); font-size: 1.2rem; letter-spacing: 0.16em; text-transform: uppercase; }
+.assassin-target { margin: 0.5rem 0 2.5rem; color: #fff2cf; font-size: clamp(3rem, 14vw, 9rem); font-weight: 900; line-height: 0.95; text-shadow: 0 0 1rem #f2c25e, 0 0 4rem #a12720; animation: target-drop 2.4s 3.2s both; }
+.assassin-verdict { color: #f0c567; font-size: clamp(1.3rem, 4vw, 2.4rem); font-weight: 900; letter-spacing: 0.08em; animation: verdict-crash 1.2s 6.6s both; }
+.assassin-verdict-subtitle { color: var(--muted); font-size: 1.1rem; animation: reveal-caption-in 1.2s 7.6s both; }
 
 .reveal-caption {
   animation: reveal-caption-in 1.3s 5.3s both;
@@ -731,6 +815,27 @@ details.rules summary {
   25% { transform: translate(-0.45rem, 0.2rem) rotate(-0.6deg); }
   50% { transform: translate(0.45rem, -0.2rem) rotate(0.6deg); }
   75% { transform: translate(-0.25rem, 0) rotate(-0.35deg); }
+}
+
+@keyframes assassin-arrival {
+  from { opacity: 0; transform: scale(1.12); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes stars-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.12); text-shadow: 0 0 2rem var(--gold); }
+}
+
+@keyframes target-drop {
+  from { opacity: 0; transform: translateY(-4rem) scale(1.5); filter: blur(1rem); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes verdict-crash {
+  0% { opacity: 0; transform: scale(2.4); filter: blur(0.4rem); }
+  60% { opacity: 1; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 
 @media (max-width: 520px) {
