@@ -92,14 +92,18 @@ export default function App() {
               Déduction sociale autour de la Table ronde — interface locale, un seul téléphone.
             </p>
           </div>
-          <button type="button" className="btn" onClick={() => setPhase('docs')}>
-            Guide
-          </button>
-          {phase !== 'home' && phase !== 'docs' && (
-            <button type="button" className="btn" onClick={resetAll}>
-              Nouvelle partie
+          <div className="header-actions">
+            <button type="button" className="btn header-action secondary" onClick={() => setPhase('docs')}>
+              <span className="button-icon" aria-hidden="true">?</span>
+              Guide
             </button>
-          )}
+            {phase !== 'home' && phase !== 'docs' && (
+              <button type="button" className="btn header-action primary" onClick={resetAll}>
+                <span className="button-icon" aria-hidden="true">+</span>
+                Nouvelle partie
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
