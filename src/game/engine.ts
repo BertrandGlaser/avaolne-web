@@ -8,6 +8,7 @@ export interface SessionTransition {
   phaseEnd?: PhaseEnd;
 }
 
+/** Crée une session vierge : aucune équipe n’est présélectionnée. */
 export function beginSession(players: Player[], leaderStart: number): GameSession {
   return {
     players,
@@ -73,6 +74,7 @@ export function tallyVote(
 ): SessionTransition {
   if (session.phaseDetail.kind !== 'vote') return { session };
   const approve = Object.values(votes).filter(Boolean).length;
+  // Avalon demande une majorité stricte : une égalité refuse l’équipe.
   const accepted = approve > session.players.length / 2;
   const votesHistory = [
     ...session.votesHistory,
@@ -103,6 +105,7 @@ export function tallyVote(
   }
 
   const requiredTeamSize = QUEST_TEAM_SIZES[session.players.length]![session.missionRound];
+  // Le vote valide l’équipe proposée, jamais l’ensemble des joueurs.
   const teamIds = session.phaseDetail.proposal.picks.filter(
     (playerId, index, picks) =>
       picks.indexOf(playerId) === index && session.players.some((player) => player.id === playerId),

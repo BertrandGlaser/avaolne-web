@@ -31,7 +31,7 @@ body {
 h1,
 h2,
 h3 {
-  font-family: Cinzel, serif;
+  font-family: 'Space Grotesk', 'DM Sans', sans-serif;
   letter-spacing: 0.04em;
 }
 
@@ -57,6 +57,78 @@ a {
   margin-top: 0;
   color: var(--gold);
   font-size: 1.15rem;
+}
+
+.roster-panel {
+  padding-bottom: 1rem;
+}
+
+.roster-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.roster-heading h2 {
+  margin-bottom: 0;
+}
+
+.roster-heading p {
+  margin: 0.2rem 0 0;
+}
+
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.roster-player {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-raised);
+}
+
+.roster-player.proposed {
+  border-color: var(--gold);
+}
+
+.roster-player.on-mission {
+  border-color: var(--good);
+  background: #1d392a;
+}
+
+.player-avatar {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #35483e;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.roster-player-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster-status {
+  color: var(--gold);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .header-row,
@@ -125,6 +197,30 @@ input[type='text'] {
   background: #12161f;
   color: var(--text);
   width: 100%;
+}
+
+.player-input {
+  width: 100%;
+  min-height: 10rem;
+  padding: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #121b17;
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.player-input:focus,
+.player-choice:focus-visible,
+.btn:focus-visible,
+.stepper-button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.setup-actions {
+  margin-top: 1rem;
 }
 
 .tag {
@@ -433,4 +529,6 @@ details.rules summary {
   .header-row, .guide-heading { align-items: stretch; flex-direction: column; }
   .header-row > .btn, .guide-heading > .btn { align-self: flex-start; }
   .role-list { grid-template-columns: 1fr; }
+  .roster-grid { grid-template-columns: 1fr; }
+  .roster-heading { flex-direction: column; gap: 0.25rem; }
 }

@@ -149,6 +149,7 @@ export default function App() {
             virgules).
           </p>
           <textarea
+            className="player-input"
             rows={8}
             value={setupDraft}
             onChange={(e) => {
@@ -165,16 +166,6 @@ export default function App() {
               );
             }}
             placeholder={'Alice\nBob\n…'}
-            style={{
-              width: '100%',
-              font: 'inherit',
-              padding: '0.55rem 0.65rem',
-              borderRadius: 8,
-              border: '1px solid var(--border)',
-              background: '#12161f',
-              color: 'var(--text)',
-              resize: 'vertical',
-            }}
           />
           <p className="muted">
             Joueurs détectés : <strong>{namesFromDraft.length}</strong>
@@ -186,7 +177,7 @@ export default function App() {
               onChange={setRoleDraft}
             />
           )}
-          <div className="row">
+          <div className="row setup-actions">
             <button
               type="button"
               className="btn primary"
@@ -265,6 +256,7 @@ export default function App() {
       {phase === 'playing' && session && (
         <>
           <BoardStrip session={session} playerCount={playerCount} />
+          <PlayerRoster session={session} />
 
           {session.phaseDetail.kind === 'propose' && (
             <section className="panel">
@@ -614,6 +606,45 @@ function BoardStrip({
                   {done.failsShown > 0 ? ` · ${done.failsShown} échec(s)` : ''}
                 </div>
               )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/** Vue de repérage : les rôles restent secrets, les statuts publics restent visibles. */
+function PlayerRoster({ session }: { session: GameSession }) {
+  const detail = session.phaseDetail;
+  const proposedIds = detail.kind === 'propose' || detail.kind === 'vote'
+    ? detail.proposal.picks
+    : [];
+  const missionIds = detail.kind === 'mission' ? detail.teamIds : [];
+  const leaderIndex = detail.kind === 'propose' || detail.kind === 'vote'
+    ? detail.proposal.leaderIndex
+    : session.leaderCursor;
+
+  return (
+    <section className="panel roster-panel">
+      <div className="roster-heading">
+        <div>
+          <p className="eyebrow">Table ronde</p>
+          <h2>Les joueurs</h2>
+        </div>
+        <p className="muted">Les rôles restent secrets</p>
+      </div>
+      <div className="roster-grid">
+        {session.players.map((player, index) => {
+          const isLeader = index === leaderIndex;
+          const isProposed = proposedIds.includes(player.id);
+          const isOnMission = missionIds.includes(player.id);
+          const status = isOnMission ? 'Mission' : isProposed ? 'Proposé' : isLeader ? 'Chef' : '';
+          return (
+            <div className={`roster-player ${isOnMission ? 'on-mission' : ''} ${isProposed ? 'proposed' : ''}`} key={player.id}>
+              <span className="player-avatar" aria-hidden="true">{player.name.charAt(0).toUpperCase()}</span>
+              <span className="roster-player-name">{player.name}</span>
+              {status && <span className="roster-status">{status}</span>}
             </div>
           );
         })}
