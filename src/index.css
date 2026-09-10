@@ -545,6 +545,10 @@ details.rules summary {
   animation: mission-reveal-in 0.9s ease-out both;
 }
 
+.mission-reveal.mission-failed {
+  animation: mission-reveal-in 0.9s ease-out both, mission-shake 0.18s 7.2s 5;
+}
+
 .mission-reveal::before,
 .mission-reveal::after {
   position: absolute;
@@ -582,7 +586,7 @@ details.rules summary {
   font-size: clamp(0.9rem, 2vw, 1.1rem);
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  animation: reveal-in 1.2s 0.7s both;
+  animation: reveal-in 1.2s 0.7s both, pulse-kicker 2.4s 1.9s infinite;
 }
 
 .mission-reveal h2 {
@@ -601,11 +605,16 @@ details.rules summary {
 }
 
 .reveal-light {
+  display: grid;
+  place-items: center;
   width: clamp(3.2rem, 12vw, 6rem);
   height: clamp(3.2rem, 12vw, 6rem);
   border-radius: 50%;
-  animation: reveal-light-in 1.4s 2s both;
+  animation: reveal-light-in 1.4s 1.8s both;
   box-shadow: 0 0 2rem currentColor, 0 0 5rem currentColor;
+  color: #092014;
+  font-size: clamp(1.4rem, 5vw, 2.6rem);
+  font-weight: 900;
 }
 
 .reveal-light.success {
@@ -616,7 +625,7 @@ details.rules summary {
 .reveal-light.failure {
   background: var(--evil);
   color: var(--evil);
-  animation-delay: 4.1s;
+  color: #310d10;
 }
 
 .reveal-caption {
@@ -710,6 +719,18 @@ details.rules summary {
 @keyframes reveal-caption-in {
   from { opacity: 0; transform: translateY(1rem); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-kicker {
+  0%, 100% { opacity: 0.65; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); text-shadow: 0 0 1.5rem var(--gold); }
+}
+
+@keyframes mission-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  25% { transform: translate(-0.45rem, 0.2rem) rotate(-0.6deg); }
+  50% { transform: translate(0.45rem, -0.2rem) rotate(0.6deg); }
+  75% { transform: translate(-0.25rem, 0) rotate(-0.35deg); }
 }
 
 @media (max-width: 520px) {

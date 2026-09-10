@@ -669,7 +669,7 @@ function MissionPanel({
       const fails = Object.values(next).filter((c) => c === 'fail').length;
       const successes = teamPlayers.length - fails;
       setReveal({ successes, hasFailure: fails > 0 });
-      window.setTimeout(() => onComplete(fails), 7000);
+      window.setTimeout(() => onComplete(fails), 4200 + teamPlayers.length * 1350);
     } else setMissionTurnIdx(missionTurnIdx + 1);
   }
 
@@ -678,17 +678,33 @@ function MissionPanel({
       <section className={`mission-reveal ${reveal.hasFailure ? 'mission-failed' : 'mission-passed'}`} aria-live="polite">
         <div className="mission-reveal-content">
           <p className="eyebrow">Résultat collectif</p>
-          <p className="mission-reveal-kicker">La Table ronde retient son souffle</p>
+          <p className="mission-reveal-kicker">⚔️ La Table ronde retient son souffle ⚔️</p>
           <h2>Les cartes sont révélées</h2>
-        <div className="reveal-lights" aria-label="Révélation progressive du résultat">
-          {Array.from({ length: reveal.successes }).map((_, index) => (
-            <span className="reveal-light success" key={`success-${index}`} />
-          ))}
-          {reveal.hasFailure && <span className="reveal-light failure" />}
-        </div>
-        <p className="reveal-caption">
-          {reveal.hasFailure ? 'La mission a échoué.' : 'La mission est réussie.'}
-        </p>
+          <div className="reveal-lights" aria-label="Révélation progressive du résultat">
+            {Array.from({ length: reveal.successes }).map((_, index) => (
+              <span
+                className="reveal-light success"
+                key={`success-${index}`}
+                style={{ animationDelay: `${1.8 + index * 1.35}s` }}
+              >
+                ✓
+              </span>
+            ))}
+            {reveal.hasFailure && (
+              <span
+                className="reveal-light failure"
+                style={{ animationDelay: `${1.8 + reveal.successes * 1.35}s` }}
+              >
+                ✕
+              </span>
+            )}
+          </div>
+          <p
+            className="reveal-caption"
+            style={{ animationDelay: `${2.8 + teamPlayers.length * 1.35}s` }}
+          >
+            {reveal.hasFailure ? '💥 La mission a échoué. 💥' : '🌟 La mission est réussie. 🌟'}
+          </p>
         </div>
       </section>
     );
